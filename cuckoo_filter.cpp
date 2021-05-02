@@ -140,7 +140,7 @@ class CuckooFilter {
         FingerprintFamily fingerprint;
 
         void insert_util(uint32_t fp, uint32_t _hash, size_t bucket_id, size_t count) {
-            if (count == threshold)
+            if (count >= threshold)
                 throw overflow_error("relocation threshold reached");
 
             if (!table.at(bucket_id).at(_hash))
@@ -164,7 +164,7 @@ class CuckooFilter {
         }
 
         bool lookup_util(uint32_t fp, uint32_t _hash, size_t bucket_id, size_t count) {
-            if (count == threshold)
+            if (count >= threshold)
                 return false;
 
             if (table.at(bucket_id).at(_hash) == fp)
@@ -184,7 +184,7 @@ class CuckooFilter {
         }
 
         bool remove_util(uint32_t fp, uint32_t _hash, size_t bucket_id, size_t count) {
-            if (count == threshold)
+            if (count >= threshold)
                 return false;
 
             if (table.at(bucket_id).at(_hash) == fp) {
