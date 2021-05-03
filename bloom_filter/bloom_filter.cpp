@@ -94,7 +94,7 @@ class BloomFilter {
     public:
         explicit BloomFilter(const uint64_t num_keys, const uint64_t size):
             num_keys(num_keys), size(size), count(0), hasher() {
-            hash_count = ceil(size*log(2)/num_keys);
+            hash_count = ceil((size * log(2)) / num_keys);
             bits.assign(size, false);
         }
 
@@ -138,7 +138,7 @@ uint64_t count_lines(const string& filename) {
     fstream file(filename.c_str(), ios_base::in);
     if (!file.good()) {
         file.close();
-        throw runtime_error("failed to open file");
+        throw fstream::failure("failed to open file");
     }
 
     string line;
@@ -151,8 +151,8 @@ uint64_t count_lines(const string& filename) {
 
 uint64_t size_by_fp_prob(const uint64_t num_keys, double fp_prob) {
     if (fp_prob <= 0 or fp_prob > 1)
-        throw bad_alloc();
-    return ceil(-(num_keys/log(2))*(log2(fp_prob)));
+        throw invalid_argument("invalid probability");
+    return ceil(-(num_keys / log(2)) * (log2(fp_prob)));
 }
 
 int main(void) {
@@ -167,12 +167,12 @@ int main(void) {
 
         BloomFilter<string, MurMurHash3> bloom(num_keys, size);
 
-        cout << "populating the filter ...\n";
+        cout << "\npopulating the filter ... ";
         bloom.populate(filename);
         cout << "done\n";
 
-        cout << "\nfalse positive probabilty: " << 100*bloom.fp_prob() << " %\n";
-        cout << "occupancy: " << 100*bloom.occupancy() << " %\n\n";
+        cout << "\nfalse positive probabilty: " << 100 * bloom.fp_prob() << " %\n";
+        cout << "occupancy: " << 100 * bloom.occupancy() << " %\n\n";
 
         string input;
         while (true) {
@@ -189,7 +189,7 @@ int main(void) {
         }
         return 0;
     }
-    catch (const runtime_error& exc) {
+    catch (const exception& exc) {
         cerr << exc.what() << endl;
         return 1;
     }
