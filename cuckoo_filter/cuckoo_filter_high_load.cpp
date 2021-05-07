@@ -2,6 +2,7 @@
 #include <vector>
 #include <string>
 #include <random>
+#include <chrono>
 #include <fstream>
 using namespace std;
 
@@ -262,6 +263,8 @@ class CuckooFilter {
         double load_factor(void) {
             return double(count) / size;
         }
+
+        friend void benchmark(CuckooFilter<string, MurMurHash3, RabinFingerprint>&, const string&);
 };
 
 uint64_t count_lines(const string& filename) {
@@ -279,6 +282,64 @@ uint64_t count_lines(const string& filename) {
     return count;
 }
 
+void benchmark(CuckooFilter<string, MurMurHash3, RabinFingerprint>& cuckoo, const string& filename) {
+    using namespace std::chrono;
+
+    std::cout << "\npopulating the filter ... ";
+    auto start = high_resolution_clock::now();
+    cuckoo.populate(filename);
+    auto stop = high_resolution_clock::now();
+    std::cout << "done\n";
+
+    double time = duration_cast<nanoseconds>(stop - start).count();
+    time /= cuckoo.count;
+
+    std::cout << "\nnumber of keys: " << cuckoo.count;
+    std::cout << "\nsize in bytes: " << 4 * cuckoo.size;
+    std::cout << "\naverage size per key in bytes: " << (4.0 * cuckoo.size) / cuckoo.count;
+    std::cout << "\nload factor: " << 100 * cuckoo.load_factor() << " %";
+    std::cout << "\naverage key insertion time: " << time << " nanoseconds\n";
+
+    std::cout << "\n1. lookup\n2. deletion\n";
+
+    string input; size_t action;
+    while (true) {
+        std::cout << "\naction: ";
+        std::cin.sync();
+        std::cin >> action;
+
+        std::cout << "password: ";
+        std::cin.sync();
+        getline(std::cin, input);
+        if (input == "exit")
+            break;
+
+        start = high_resolution_clock::now();
+        bool result;
+        if (action == 1)
+            result = cuckoo.lookup(input);
+        else if (action == 2)
+            result = cuckoo.remove(input);
+        else {
+            std::cout << std::endl;
+            continue;
+        }
+        stop = high_resolution_clock::now();
+        time = duration_cast<nanoseconds>(stop - start).count();
+
+        if (result and action == 1)
+            std::cout << "password is common";
+        else if (result and action == 2)
+            std::cout << "password deleted";
+        else if (!result and action == 1)
+            std::cout << "password is unique";
+        else if (!result and action == 2)
+            std::cout << "password doesn't exist";
+        std::cout << " (operation time: " << time << " nanoseconds)\n";
+        input.clear();
+    }
+}
+
 int main(void) {
     string filename;
     cout << "enter dictionary path: ";
@@ -287,34 +348,9 @@ int main(void) {
     try {
         cout << "reading file ...\n";
         uint64_t num_keys = count_lines(filename);
+
         CuckooFilter<string, MurMurHash3, RabinFingerprint> cuckoo(num_keys, 500);
-
-        cout << "\npopulating the filter ... ";
-        try {
-            cuckoo.populate(filename);
-            cout << "done\n";
-        }
-        catch (const out_of_range& exc) {
-            cerr << "\nindex out of hash table's range\n";
-            return 1;
-        }
-
-        cout << "\nload factor: " << 100 * cuckoo.load_factor() << " %\n";
-
-        string input;
-        while (true) {
-            cout << "\nlookup password: ";
-            cin.sync();
-            getline(cin, input);
-
-            if (input == "exit")
-                break;
-            if (cuckoo.lookup(input))
-                cout << "password is common\n";
-            else
-                cout << "password is unique\n";
-            input.clear();
-        }
+        benchmark(cuckoo, filename);
         return 0;
     }
     catch (const exception& exc) {
