@@ -2,6 +2,7 @@
 #include <string>
 #include <vector>
 #include <math.h>
+#include <chrono>
 #include <fstream>
 using namespace std;
 
@@ -132,6 +133,8 @@ class BloomFilter {
         double occupancy(void) {
             return (1.0 * count) / num_keys;
         }
+
+        friend void benchmark(BloomFilter<string, MurMurHash3>&, const string&);
 };
 
 uint64_t count_lines(const string& filename) {
@@ -155,6 +158,47 @@ uint64_t size_by_fp_prob(const uint64_t num_keys, double fp_prob) {
     return ceil(-(num_keys / log(2)) * (log2(fp_prob)));
 }
 
+void benchmark(BloomFilter<string, MurMurHash3>& bloom, const string& filename) {
+    using namespace std::chrono;
+
+    std::cout << "\npopulating the filter ... ";
+    auto start = high_resolution_clock::now();
+    bloom.populate(filename);
+    auto stop = high_resolution_clock::now();
+    std::cout << "done\n";
+
+    double time = duration_cast<nanoseconds>(stop - start).count();
+    time /= bloom.num_keys;
+
+    std::cout << "\nnumber of keys: " << bloom.num_keys;
+    std::cout << "\nsize in bytes: " << bloom.size;
+    std::cout << "\naverage size per key in bytes: " << (double)bloom.size / bloom.num_keys;
+    std::cout << "\nspace occupancy: " << 100 * bloom.occupancy() << " %";
+    std::cout << "\naverage key insertion time: " << time << " nanoseconds\n";
+    std::cout << "\nfalse positive probabilty: " << 100 * bloom.fp_prob() << " %";
+
+    string input;
+    while (true) {
+        std::cout << "\nlookup password: ";
+        std::cin.sync();
+        getline(std::cin, input);
+        if (input == "exit")
+            break;
+
+        start = high_resolution_clock::now();
+        bool result = bloom.lookup(input);
+        stop = high_resolution_clock::now();
+        time = duration_cast<nanoseconds>(stop - start).count();
+
+        if (result)
+            std::cout << "password is common";
+        else
+            std::cout << "password is unique";
+        std::cout << " (operation time: " << time << " nanoseconds)\n";
+        input.clear();
+    }
+}
+
 int main(void) {
     string filename;
     cout << "enter dictionary path: ";
@@ -166,27 +210,7 @@ int main(void) {
         uint64_t size = size_by_fp_prob(num_keys, 0.05);
 
         BloomFilter<string, MurMurHash3> bloom(num_keys, size);
-
-        cout << "\npopulating the filter ... ";
-        bloom.populate(filename);
-        cout << "done\n";
-
-        cout << "\nfalse positive probabilty: " << 100 * bloom.fp_prob() << " %\n";
-        cout << "occupancy: " << 100 * bloom.occupancy() << " %\n\n";
-
-        string input;
-        while (true) {
-            cout << "\nlookup password: ";
-            cin.sync();
-            getline(cin, input);
-            if (input == "exit")
-                break;
-            if (bloom.lookup(input))
-                cout << "password is common\n";
-            else
-                cout << "password is unique\n";
-            input.clear();
-        }
+        benchmark(bloom, filename);
         return 0;
     }
     catch (const exception& exc) {
