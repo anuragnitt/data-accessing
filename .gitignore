@@ -1,2 +1,10 @@
+# sample data
+samples
 *.txt
-sample
+
+# compiled binaries
+*.exe
+*.out
+
+# vscode
+.vscode
