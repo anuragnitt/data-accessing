@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <sstream>
 
 #ifndef _BTREE_NOT_MODIFIED
 	#define _BTREE_NOT_MODIFIED 0
@@ -12,10 +13,6 @@
 
 #ifndef _BTREE_NEW_ROOT
 	#define _BTREE_NEW_ROOT 2
-#endif
-
-#ifndef _BTREE_KEY_NOT_FOUND
-	#define _BTREE_KEY_NOT_FOUND 3
 #endif
 
 typedef unsigned char uint8_t;
@@ -170,7 +167,7 @@ template <typename _Tp>
 uint32_t BTree<_Tp>::nodeInsert(BNode<_Tp>* node, const _Tp key) {
 	uint32_t index;
 
-	for (index = node->size; index > 0 && lessThan(key, node->key[index]); index--) {
+	for (index = node->size; index > 0 and lessThan(key, node->key[index - 1]); index--) {
 		node->key[index] = node->key[index - 1];
 		node->child[index + 1] = node->child[index];
 	}
@@ -222,8 +219,8 @@ uint8_t BTree<_Tp>::mergeChildren(BNode<_Tp>* par, const uint32_t index) {
 	BNode<_Tp>* leftChild = par->child[index];
 	BNode<_Tp>* rightChild = par->child[index + 1];
 
-	leftChild->key[leftChild->size++] = nodeDelete(par, index);
-	uint32_t j = leftChild->size;
+	leftChild->key[leftChild->size] = nodeDelete(par, index);
+	uint32_t j = ++ leftChild->size;
 
 	for (uint32_t k = 0; k < rightChild->size; k++) {
 		leftChild->key[j + k] = rightChild->key[k];
@@ -301,7 +298,7 @@ void BTree<_Tp>::printNode(std::ostream& out, const BNode<_Tp>* node, const uint
 
 template <typename _Tp>
 void BTree<_Tp>::insert(const _Tp key) {
-	if (root->size >= 2 * minDegree - 1) {
+	if (root->size == 2 * minDegree - 1) {
 		BNode<_Tp>* newRoot = new BNode<_Tp>(minDegree);
 		newRoot->leaf = false;
 		newRoot->child[0] = root;
@@ -312,14 +309,14 @@ void BTree<_Tp>::insert(const _Tp key) {
 	BNode<_Tp>* curr = root;
 	while (not curr->leaf) {
 		uint32_t index = curr->size - 1;
-		while (index >= 0 && lessThan(key, curr->key[index])) {
+		while (index >= 0 and lessThan(key, curr->key[index])) {
 			index--;
 		}
 		index++;
 
 		if (curr->child[index]->size == 2 * minDegree - 1) {
 			splitChild(curr, index);
-			if (lessThan(curr->child[index], key)) {
+			if (lessThan(curr->key[index], key)) {
 				index++;
 			}
 		}
@@ -337,7 +334,7 @@ _Tp BTree<_Tp>::remove(const _Tp key) {
 	while (true) {
 		uint32_t i = findIndex(curr, key);
 		
-		if (i < curr->size and not lessThan(curr->key[i], key) or lessThan(key, curr->key[i])) {
+		if (i < curr->size and not (lessThan(curr->key[i], key) or lessThan(key, curr->key[i]))) {
 			_Tp toReturn = curr->key[i];
 			if (curr->leaf) {
 				nodeDelete(curr, i);
@@ -375,7 +372,11 @@ _Tp BTree<_Tp>::remove(const _Tp key) {
 
 		else {
 			if (curr->leaf) {
-				throw _BTREE_KEY_NOT_FOUND;
+				std::stringstream newbuf;
+				std::streambuf* oldbuf = std::cout.rdbuf(newbuf.rdbuf());
+				printKey(key);
+				std::cout.rdbuf(oldbuf);
+				throw std::out_of_range("_BTREE_KEY_NOT_FOUND: " + newbuf.str());
 			}
 
 			if (fixChildSize(curr, i) == _BTREE_NEW_ROOT) {
@@ -396,12 +397,12 @@ std::pair<const BNode<_Tp>*, const uint32_t> BTree<_Tp>::search(const _Tp key) c
 	while (true) {
 		uint32_t i = findIndex(curr, key);
 
-		if (i < curr->size and not lessThan(key, curr->key[i]) or lessThan(curr->key[i], key)) {
-			return std::make_pair<const BNode<_Tp>*, const uint32_t>(curr, i);
+		if (i < curr->size and not (lessThan(key, curr->key[i]) or lessThan(curr->key[i], key))) {
+			return std::pair<const BNode<_Tp>*, const uint32_t>(curr, i);
 		}
 		
 		else if (curr->leaf) {
-			return std::make_pair<const BNode<_Tp>*, const uint32_t>(nullptr, 0);
+			return std::pair<const BNode<_Tp>*, const uint32_t>(nullptr, 0);
 		}
 
 		else {
@@ -414,7 +415,11 @@ template <typename _Tp>
 _Tp BTree<_Tp>::searchKey(const _Tp key) const {
 	std::pair<const BNode<_Tp>*, const uint32_t> node = search(key);
 	if (node.first == nullptr) {
-		throw _BTREE_KEY_NOT_FOUND;
+		std::stringstream newbuf;
+		std::streambuf* oldbuf = std::cout.rdbuf(newbuf.rdbuf());
+		printKey(key);
+		std::cout.rdbuf(oldbuf);
+		throw std::out_of_range("_BTREE_KEY_NOT_FOUND: " + newbuf.str());
 	}
 	
 	return node.first->key[node.second];
