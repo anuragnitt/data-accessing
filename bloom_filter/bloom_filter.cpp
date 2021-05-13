@@ -162,9 +162,9 @@ void benchmark(BloomFilter<string, MurMurHash3>& bloom, const string& filename) 
     using namespace std::chrono;
 
     std::cout << "\npopulating the filter ... ";
-    auto start = high_resolution_clock::now();
+    std::chrono::_V2::system_clock::time_point start = high_resolution_clock::now();
     bloom.populate(filename);
-    auto stop = high_resolution_clock::now();
+    std::chrono::_V2::system_clock::time_point stop = high_resolution_clock::now();
     std::cout << "done\n";
 
     double time = duration_cast<nanoseconds>(stop - start).count();
