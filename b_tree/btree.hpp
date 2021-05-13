@@ -27,6 +27,9 @@ template <typename _Tp> std::ostream& operator<<(std::ostream&, const BTree<_Tp>
 
 template <typename _Tp>
 class BNode {
+	protected:
+		void deepClean(void) noexcept;
+
 	public:
 		BNode** child;
 		_Tp* key;
@@ -43,26 +46,28 @@ class BTree {
 	private:
 		BNode<_Tp>* root;
 		const uint32_t minDegree;
-		bool (*lessThan)(const _Tp, const _Tp);
-		void (*printKey)(const _Tp);
+		bool (*lessThan)(const _Tp, const _Tp) noexcept;
+		void (*printKey)(const _Tp) noexcept;
+		uint32_t keyCount;
+		uint32_t heightCount;
 
-		void copyNode(BNode<_Tp>*&, const BNode<_Tp>*);
+		void copyNode(BNode<_Tp>*&, const BNode<_Tp>*) noexcept;
 
 		void freeNode(BNode<_Tp>*);
 
-		uint32_t findIndex(const BNode<_Tp>*, const _Tp) const;
+		uint32_t findIndex(const BNode<_Tp>*, const _Tp) const noexcept;
 
-		uint32_t nodeInsert(BNode<_Tp>*, const _Tp);
+		uint32_t nodeInsert(BNode<_Tp>*, const _Tp) noexcept;
 
-		_Tp nodeDelete(BNode<_Tp>*, uint32_t);
+		_Tp nodeDelete(BNode<_Tp>*, uint32_t) noexcept;
 
-		void splitChild(BNode<_Tp>*, const uint32_t);
+		void splitChild(BNode<_Tp>*, const uint32_t) noexcept;
 
-		uint8_t mergeChildren(BNode<_Tp>*, const uint32_t);
+		uint8_t mergeChildren(BNode<_Tp>*, const uint32_t) noexcept;
 
-		uint8_t fixChildSize(BNode<_Tp>*, const uint32_t);
+		uint8_t fixChildSize(BNode<_Tp>*, const uint32_t) noexcept;
 
-		void printNode(std::ostream&, const BNode<_Tp>*, const uint32_t) const;
+		void printNode(std::ostream&, const BNode<_Tp>*, const uint32_t) const noexcept;
 
 	public:
 		explicit BTree(const uint32_t, bool (*)(const _Tp, const _Tp), void (*)(const _Tp) = nullptr);
@@ -73,11 +78,15 @@ class BTree {
 
 		BTree<_Tp>& operator=(const BTree<_Tp>&);
 
-		void insert(const _Tp);
+		constexpr uint32_t size(void) const noexcept;
+
+		constexpr uint32_t height(void) const noexcept;
+
+		void insert(const _Tp) noexcept;
 
 		_Tp remove(const _Tp);
 
-		std::pair<const BNode<_Tp>*, const uint32_t> search(const _Tp) const;
+		std::pair<const BNode<_Tp>*, uint32_t> search(const _Tp) const noexcept;
 
 		_Tp searchKey(const _Tp) const;
 
@@ -102,8 +111,20 @@ BNode<_Tp>::~BNode(void) {
 }
 
 template <typename _Tp>
+void BNode<_Tp>::deepClean(void) noexcept {
+	if (not leaf) {
+		for (uint32_t i = 0; i <= size; i++) {
+			child[i]->deepClean();
+		}
+	}
+
+	delete[] child;
+	delete[] key;
+}
+
+template <typename _Tp>
 BTree<_Tp>::BTree(const uint32_t deg, bool (*compare)(const _Tp, const _Tp), void (*printK)(const _Tp))
-	: minDegree(deg), lessThan(compare), printKey(printK) {
+	: minDegree(deg), lessThan(compare), printKey(printK), keyCount(0), heightCount(0) {
 	root = new BNode<_Tp>(minDegree);
 }
 
@@ -114,19 +135,26 @@ BTree<_Tp>::~BTree(void) {
 
 template <typename _Tp>
 BTree<_Tp>::BTree(const BTree<_Tp>& btree)
-	: minDegree(btree.minDegree), lessThan(btree.lessThan), printKey(btree.printKey) {
+	: minDegree(btree.minDegree), lessThan(btree.lessThan), printKey(btree.printKey),
+	keyCount(btree.keyCount), heightCount(btree.heightCount) {
 	copyNode(root, btree.root);
 }
 
 template <typename _Tp>
 BTree<_Tp>& BTree<_Tp>::operator=(const BTree& btree) {
+	if (minDegree != btree.minDegree)
+		throw std::bad_alloc();
+
+	keyCount = btree.keyCount;
+	heightCount = btree.heightCount;
 	freeNode(root);
 	copyNode(root, btree.root);
+
 	return *this;
 }
 
 template <typename _Tp>
-void BTree<_Tp>::copyNode(BNode<_Tp>*& dest, const BNode<_Tp>* src) {
+void BTree<_Tp>::copyNode(BNode<_Tp>*& dest, const BNode<_Tp>* src) noexcept {
 	dest = new BNode<_Tp>(minDegree);
 	dest->size = src->size;
 	dest->leaf = src->leaf;
@@ -144,6 +172,9 @@ void BTree<_Tp>::copyNode(BNode<_Tp>*& dest, const BNode<_Tp>* src) {
 
 template <typename _Tp>
 void BTree<_Tp>::freeNode(BNode<_Tp>* node) {
+	if (node == nullptr)
+		throw std::runtime_error("nullptr bad deallocation");
+
 	if (not node->leaf) {
 		for (uint32_t i = 0; i <= node->size; i++) {
 			freeNode(node->child[i]);
@@ -154,7 +185,7 @@ void BTree<_Tp>::freeNode(BNode<_Tp>* node) {
 }
 
 template <typename _Tp>
-uint32_t BTree<_Tp>::findIndex(const BNode<_Tp>* node, const _Tp key) const {
+uint32_t BTree<_Tp>::findIndex(const BNode<_Tp>* node, const _Tp key) const noexcept {
 	uint32_t i = 0;
 	while (i < node->size and lessThan(node->key[i], key)) {
 		i++;
@@ -164,7 +195,7 @@ uint32_t BTree<_Tp>::findIndex(const BNode<_Tp>* node, const _Tp key) const {
 }
 
 template <typename _Tp>
-uint32_t BTree<_Tp>::nodeInsert(BNode<_Tp>* node, const _Tp key) {
+uint32_t BTree<_Tp>::nodeInsert(BNode<_Tp>* node, const _Tp key) noexcept {
 	uint32_t index;
 
 	for (index = node->size; index > 0 and lessThan(key, node->key[index - 1]); index--) {
@@ -180,7 +211,7 @@ uint32_t BTree<_Tp>::nodeInsert(BNode<_Tp>* node, const _Tp key) {
 }
 
 template <typename _Tp>
-_Tp BTree<_Tp>::nodeDelete(BNode<_Tp>* node, uint32_t index) {
+_Tp BTree<_Tp>::nodeDelete(BNode<_Tp>* node, uint32_t index) noexcept {
 	_Tp toReturn = node->key[index];
 	node->size--;
 
@@ -194,7 +225,7 @@ _Tp BTree<_Tp>::nodeDelete(BNode<_Tp>* node, uint32_t index) {
 }
 
 template <typename _Tp>
-void BTree<_Tp>::splitChild(BNode<_Tp>* par, const uint32_t index) {
+void BTree<_Tp>::splitChild(BNode<_Tp>* par, const uint32_t index) noexcept {
 	BNode<_Tp>* toSplit = par->child[index];
 	BNode<_Tp>* newNode = new BNode<_Tp>(minDegree);
 	newNode->leaf = toSplit->leaf;
@@ -215,7 +246,7 @@ void BTree<_Tp>::splitChild(BNode<_Tp>* par, const uint32_t index) {
 }
 
 template <typename _Tp>
-uint8_t BTree<_Tp>::mergeChildren(BNode<_Tp>* par, const uint32_t index) {
+uint8_t BTree<_Tp>::mergeChildren(BNode<_Tp>* par, const uint32_t index) noexcept {
 	BNode<_Tp>* leftChild = par->child[index];
 	BNode<_Tp>* rightChild = par->child[index + 1];
 
@@ -234,6 +265,7 @@ uint8_t BTree<_Tp>::mergeChildren(BNode<_Tp>* par, const uint32_t index) {
 	if (par->size == 0) {
 		root = leftChild;
 		delete par;
+		heightCount--;
 		return _BTREE_NEW_ROOT;
 	}
 
@@ -241,7 +273,7 @@ uint8_t BTree<_Tp>::mergeChildren(BNode<_Tp>* par, const uint32_t index) {
 }
 
 template <typename _Tp>
-uint8_t BTree<_Tp>::fixChildSize(BNode<_Tp>* par, const uint32_t index) {
+uint8_t BTree<_Tp>::fixChildSize(BNode<_Tp>* par, const uint32_t index) noexcept {
 	BNode<_Tp>* child = par->child[index];
 
 	if (child->size < minDegree) {
@@ -279,7 +311,7 @@ uint8_t BTree<_Tp>::fixChildSize(BNode<_Tp>* par, const uint32_t index) {
 }
 
 template <typename _Tp>
-void BTree<_Tp>::printNode(std::ostream& out, const BNode<_Tp>* node, const uint32_t indent) const {
+void BTree<_Tp>::printNode(std::ostream& out, const BNode<_Tp>* node, const uint32_t indent) const noexcept {
 	for (uint32_t i = 0; i < indent; i++) {
 		out << "\t";
 	}
@@ -297,13 +329,24 @@ void BTree<_Tp>::printNode(std::ostream& out, const BNode<_Tp>* node, const uint
 }
 
 template <typename _Tp>
-void BTree<_Tp>::insert(const _Tp key) {
+constexpr uint32_t BTree<_Tp>::size(void) const noexcept {
+	return keyCount;
+}
+
+template <typename _Tp>
+constexpr uint32_t BTree<_Tp>::height(void) const noexcept {
+	return heightCount;
+}
+
+template <typename _Tp>
+void BTree<_Tp>::insert(const _Tp key) noexcept {
 	if (root->size == 2 * minDegree - 1) {
 		BNode<_Tp>* newRoot = new BNode<_Tp>(minDegree);
 		newRoot->leaf = false;
 		newRoot->child[0] = root;
 		root = newRoot;
 		splitChild(newRoot, 0);
+		heightCount++;
 	}
 
 	BNode<_Tp>* curr = root;
@@ -325,6 +368,7 @@ void BTree<_Tp>::insert(const _Tp key) {
 	}
 
 	nodeInsert(curr, key);
+	keyCount++;
 }
 
 template <typename _Tp>
@@ -388,21 +432,23 @@ _Tp BTree<_Tp>::remove(const _Tp key) {
 			}
 		}
 	}
+
+	keyCount--;
 }
 
 template <typename _Tp>
-std::pair<const BNode<_Tp>*, const uint32_t> BTree<_Tp>::search(const _Tp key) const {
+std::pair<const BNode<_Tp>*, uint32_t> BTree<_Tp>::search(const _Tp key) const noexcept {
 	BNode<_Tp>* curr = root;
 	
 	while (true) {
 		uint32_t i = findIndex(curr, key);
 
 		if (i < curr->size and not (lessThan(key, curr->key[i]) or lessThan(curr->key[i], key))) {
-			return std::pair<const BNode<_Tp>*, const uint32_t>(curr, i);
+			return std::pair<const BNode<_Tp>*, uint32_t>(curr, i);
 		}
 		
 		else if (curr->leaf) {
-			return std::pair<const BNode<_Tp>*, const uint32_t>(nullptr, 0);
+			return std::pair<const BNode<_Tp>*, uint32_t>(nullptr, 0);
 		}
 
 		else {
@@ -413,7 +459,7 @@ std::pair<const BNode<_Tp>*, const uint32_t> BTree<_Tp>::search(const _Tp key) c
 
 template <typename _Tp>
 _Tp BTree<_Tp>::searchKey(const _Tp key) const {
-	std::pair<const BNode<_Tp>*, const uint32_t> node = search(key);
+	std::pair<const BNode<_Tp>*, uint32_t> node = search(key);
 	if (node.first == nullptr) {
 		std::stringstream newbuf;
 		std::streambuf* oldbuf = std::cout.rdbuf(newbuf.rdbuf());
