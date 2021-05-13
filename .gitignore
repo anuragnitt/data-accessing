@@ -1,6 +1,9 @@
 # sample data
-samples
-*.txt
+/samples
+
+# temporary data
+/bplustree/temp/*
+!/bplustree/temp/.gitkeep
 
 # compiled binaries
 *.exe
