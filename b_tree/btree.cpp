@@ -3,18 +3,34 @@
 #include "btree.hpp"
 using namespace std;
 
-bool cmp(int a, int b) {
+bool compare(int a, int b) {
 	return a < b;
 }
 
-void print(int x) {
+void printInt(int x) {
 	std::cout << x;
 }
 
 int main(void) {
-	BTree<int> bt(5, cmp, print);
-	BTree<int> bt2 = bt;
-	BTree<int> bt3(6, cmp, print);
-	bt = bt3;
-	return 0;
+	try {
+		BTree<int> bt(3, compare, printInt);
+
+		for (int i = 0; i < 20; i++) {
+			bt.insert(i+1);
+		}
+
+		BTree<int> bt2 = bt;
+		bt.remove(15);
+		cout << bt;
+		cout << bt2;
+
+		bt = bt2;
+		cout << bt;
+		return 0;
+	}
+
+	catch (const std::exception& exc) {
+		cerr << exc.what() << std::endl;
+		return 1;
+	}
 }
