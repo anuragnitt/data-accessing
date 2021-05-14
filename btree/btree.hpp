@@ -74,9 +74,9 @@ class BTree {
 
 		~BTree(void);
 
-		BTree(const BTree<_Tp>&);
+		BTree(const BTree&);
 
-		BTree<_Tp>& operator=(const BTree<_Tp>&);
+		BTree& operator=(const BTree&);
 
 		constexpr uint32_t size(void) const noexcept;
 
@@ -134,7 +134,7 @@ BTree<_Tp>::~BTree(void) {
 }
 
 template <typename _Tp>
-BTree<_Tp>::BTree(const BTree<_Tp>& btree)
+BTree<_Tp>::BTree(const BTree& btree)
 	: minDegree(btree.minDegree), lessThan(btree.lessThan), printKey(btree.printKey),
 	keyCount(btree.keyCount), heightCount(btree.heightCount) {
 	copyNode(root, btree.root);
