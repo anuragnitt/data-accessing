@@ -1,7 +1,9 @@
 #include <iostream>
 #include <string>
+#include <cmath>
 #include <fstream>
 #include <chrono>
+#include "murmurhash3.hpp"
 #include "bloomfilter.hpp"
 using namespace std;
 
@@ -30,7 +32,7 @@ uint64_t size_by_fp_prob(const uint64_t num_keys, double fp_prob) {
     return ceil(-(num_keys / log(2)) * (log2(fp_prob)));
 }
 
-void populate_filter(BloomFilter<string>& bloom, const string& filename) {
+void populate_filter(BloomFilter<string, MurMurHash3>& bloom, const string& filename) {
     fstream file(filename.c_str(), ios_base::in);
     if (not file.good()) {
         file.close();
@@ -45,7 +47,7 @@ void populate_filter(BloomFilter<string>& bloom, const string& filename) {
     file.close();
 }
 
-void benchmark(BloomFilter<string>& bloom, const string& filename) {
+void benchmark(BloomFilter<string, MurMurHash3>& bloom, const string& filename) {
     using namespace std::chrono;
 
     std::cout << "\npopulating the filter ... ";
@@ -59,12 +61,12 @@ void benchmark(BloomFilter<string>& bloom, const string& filename) {
     double time = duration_cast<nanoseconds>(stop - start).count();
     time /= bloom.num_keys();
 
-    std::cout << "\nnumber of keys: " << bloom.num_keys();
-    std::cout << "\nsize of filter (bytes): " << bloom.size_in_bytes();
-    std::cout << "\naverage size per key in bytes: " << (double)bloom.size_in_bytes() / bloom.num_keys();
-    std::cout << "\nspace occupancy: " << 100 * bloom.occupancy_ratio() << " %";
-    std::cout << "\naverage key insertion time: " << time << " ns";
-    std::cout << "\nfalse positive probabilty: " << 100 * bloom.fp_prob() << " %\n";
+    std::cout << "\nnumber of keys\t\t\t: " << bloom.num_keys();
+    std::cout << "\nsize of filter (bytes)\t\t: " << bloom.size_in_bytes();
+    std::cout << "\naverage size per key (bytes)\t: " << (double)bloom.size_in_bytes() / bloom.num_keys();
+    std::cout << "\nspace occupancy\t\t\t: " << 100 * bloom.occupancy_ratio() << " %";
+    std::cout << "\naverage key insertion time\t: " << time << " ns";
+    std::cout << "\nfalse positive probabilty\t: " << 100 * bloom.fp_prob() << " %\n";
 
     string input;
     while (true) {
@@ -107,7 +109,7 @@ int main(void) {
         uint64_t num_keys = count_lines(filename);
         uint64_t size = size_by_fp_prob(num_keys, fp_prob);
 
-        BloomFilter<string> bloom(num_keys, size);
+        BloomFilter<string, MurMurHash3> bloom(num_keys, size);
         benchmark(bloom, filename);
         return 0;
     }

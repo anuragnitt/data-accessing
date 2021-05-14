@@ -10,8 +10,8 @@
 using namespace std;
 
 const string FOLDER("temp/");
-const string INIT_FILE("samples/init_data.txt");
-const string QUERY_FILE("samples/query_data.txt");
+const string INIT_FILE("tree_data/init_data.txt");
+const string QUERY_FILE("tree_data/query_data.txt");
 const uint32_t MAX_KEYS = 512;
 
 uint32_t nodeNoGlobalCounter = 1;
@@ -42,8 +42,10 @@ class BPTree {
 	public:
 		uint32_t leaf;
 		uint32_t nodeNo;
+
 		vector <double> keys;
-		vector <uint32_t> children;	
+		vector <uint32_t> children;
+
 		int previous;
 		int next;
 
@@ -67,10 +69,10 @@ void benchmark(string header, vector<double>& timeVector) {
 	double standardDev = sqrt(squaredSum / timeVector.size() - mean * mean);
 
 	cout << header << ":\n";
-	cout << "\t\t1) Minimum Time:\t\t" << *min_element(timeVector.begin(), timeVector.end()) << " ns\n";
-	cout << "\t\t2) Maximum Time:\t\t" << *max_element(timeVector.begin(), timeVector.end()) << " ns\n";
-	cout << "\t\t3) Average Time:\t\t" << mean << " ns\n";
-	cout << "\t\t4) Standard Deviation:\t\t" << standardDev << " ns\n";
+	cout << "\t\t1) Minimum Time:\t\t" << *min_element(timeVector.begin(), timeVector.end()) << " ms\n";
+	cout << "\t\t2) Maximum Time:\t\t" << *max_element(timeVector.begin(), timeVector.end()) << " ms\n";
+	cout << "\t\t3) Average Time:\t\t" << mean << " ms\n";
+	cout << "\t\t4) Standard Deviation:\t\t" << standardDev << " ms\n";
 }
 
 void pointRead(uint32_t fname) {
@@ -78,7 +80,8 @@ void pointRead(uint32_t fname) {
 	ifstream inFile(FOLDER + "data_" + to_string(fname));
 
 	while (getline(inFile, line)) {
-		cout<< line << endl;
+		//cout<< line << endl;
+		continue;
 	}
 
 	inFile.close();
@@ -419,7 +422,7 @@ int main(void) {
 		Insert(key, NewObjectFile(to_string(key) + "\t" + data));
 		endTime = high_resolution_clock::now();
 
-		statsInsert.push_back((double) duration_cast<nanoseconds>(endTime - startTime).count());
+		statsInsert.push_back((double) duration_cast<milliseconds>(endTime - startTime).count());
 		inserted++;
 	}
 
@@ -453,10 +456,10 @@ int main(void) {
 			Insert(pt1, NewObjectFile(to_string(pt1) + "\t" + data));
 			endTime = high_resolution_clock::now();
 
-			statsInsert.push_back((double) duration_cast<nanoseconds>(endTime - startTime).count());
+			statsInsert.push_back((double) duration_cast<milliseconds>(endTime - startTime).count());
 			insertQuery++;
 
-			cout << "Inserted\n";
+			//cout << "Inserted\n";
 		}
 
 		else if (qCode == 1) {
@@ -465,15 +468,15 @@ int main(void) {
 			uint32_t temp = PointQuery(pt1);
 			endTime = high_resolution_clock::now();
 
-			statsPoint.push_back((double) duration_cast<nanoseconds>(endTime - startTime).count());
+			statsPoint.push_back((double) duration_cast<milliseconds>(endTime - startTime).count());
 			if (temp != 0) {
-				cout << pt1 << ": Found\n";
+				//cout << pt1 << ": Found\n";
 				pointRead(temp);
 			}
 
-			else {
+			/*else {
 				cout << "Not Found\n" << qCode << "\t" << pt1 << endl;
-			}
+			}*/
 
 			pointQuery++;
 		}
@@ -482,8 +485,8 @@ int main(void) {
 			double Range;
 			queries >> Range;
 
-			cout << "Range Query:\n";
-			cout << "Point: " << pt1 <<  " Range: " << Range << endl;
+			/*cout << "Range Query:\n";
+			cout << "Point: " << pt1 <<  " Range: " << Range << endl;*/
 
 			vector<uint32_t> result;
 
@@ -493,16 +496,16 @@ int main(void) {
 			rangeRead(result);
 			endTime = high_resolution_clock::now();
 
-			statsRange.push_back((double) duration_cast<nanoseconds>(endTime - startTime).count());
+			statsRange.push_back((double) duration_cast<milliseconds>(endTime - startTime).count());
 			rangeQuery++;
 		}
 
 		else {
-			cout << "Query Code " << qCode << " not supported\n";
+			//cout << "Query Code " << qCode << " not supported\n";
 			invalidQuery++;
 		}
 		
-		cout << endl;
+		//cout << endl;
 	}
 
 	cout << "\n-----------------------------------------\n\nBENCHMARK RESULTS:\n";

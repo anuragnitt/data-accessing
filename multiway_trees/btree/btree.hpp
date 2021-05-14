@@ -46,8 +46,10 @@ class BTree {
 	private:
 		BNode<_Tp>* root;
 		const uint32_t minDegree;
-		bool (*lessThan)(const _Tp, const _Tp) noexcept;
-		void (*printKey)(const _Tp) noexcept;
+
+		bool (*lessThan)(const _Tp&, const _Tp&) noexcept;
+		void (*printKey)(const _Tp&) noexcept;
+
 		uint32_t keyCount;
 		uint32_t heightCount;
 
@@ -70,7 +72,7 @@ class BTree {
 		void printNode(std::ostream&, const BNode<_Tp>*, const uint32_t) const noexcept;
 
 	public:
-		explicit BTree(const uint32_t, bool (*)(const _Tp, const _Tp), void (*)(const _Tp) = nullptr);
+		explicit BTree(const uint32_t, bool (*)(const _Tp&, const _Tp&), void (*)(const _Tp&) = nullptr);
 
 		~BTree(void);
 
@@ -78,9 +80,11 @@ class BTree {
 
 		BTree& operator=(const BTree&);
 
-		constexpr uint32_t size(void) const noexcept;
+		constexpr uint32_t num_keys(void) const noexcept;
 
 		constexpr uint32_t height(void) const noexcept;
+
+		constexpr uint64_t size_in_bytes(void) const noexcept;
 
 		void insert(const _Tp) noexcept;
 
@@ -123,7 +127,7 @@ void BNode<_Tp>::deepClean(void) noexcept {
 }
 
 template <typename _Tp>
-BTree<_Tp>::BTree(const uint32_t deg, bool (*compare)(const _Tp, const _Tp), void (*printK)(const _Tp))
+BTree<_Tp>::BTree(const uint32_t deg, bool (*compare)(const _Tp&, const _Tp&), void (*printK)(const _Tp&))
 	: minDegree(deg), lessThan(compare), printKey(printK), keyCount(0), heightCount(0) {
 	root = new BNode<_Tp>(minDegree);
 }
@@ -329,13 +333,18 @@ void BTree<_Tp>::printNode(std::ostream& out, const BNode<_Tp>* node, const uint
 }
 
 template <typename _Tp>
-constexpr uint32_t BTree<_Tp>::size(void) const noexcept {
+constexpr uint32_t BTree<_Tp>::num_keys(void) const noexcept {
 	return keyCount;
 }
 
 template <typename _Tp>
 constexpr uint32_t BTree<_Tp>::height(void) const noexcept {
 	return heightCount;
+}
+
+template <typename _Tp>
+constexpr uint64_t BTree<_Tp>::size_in_bytes(void) const noexcept {
+	return keyCount * sizeof(_Tp);
 }
 
 template <typename _Tp>
