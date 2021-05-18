@@ -22,6 +22,8 @@ class RabinFingerprint {
 
         uint64_t operator()(const void*, const size_t) const noexcept;
 
+        uint64_t operator()(char*) const noexcept;
+
         uint64_t operator()(const char*) const noexcept;
 
         uint64_t operator()(const std::string&) const noexcept;
@@ -73,6 +75,10 @@ uint64_t RabinFingerprint::fingerprint(const void* key, const size_t len) const 
 
 uint64_t RabinFingerprint::operator()(const void* key, const size_t len) const noexcept {
     return fingerprint(key, len);
+}
+
+uint64_t RabinFingerprint::operator()(char* str) const noexcept {
+    return operator()((const char*) str);
 }
 
 uint64_t RabinFingerprint::operator()(const char* str) const noexcept {

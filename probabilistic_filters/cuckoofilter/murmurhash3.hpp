@@ -17,6 +17,8 @@ class MurMurHash3 {
 
         uint32_t operator()(const void*, const size_t, const uint32_t = 0) const noexcept;
 
+        uint32_t operator()(char*, const uint32_t = 0) const noexcept;
+
         uint32_t operator()(const char*, const uint32_t = 0) const noexcept;
 
         uint32_t operator()(const std::string&, const uint32_t = 0) const noexcept;
@@ -80,6 +82,10 @@ uint32_t MurMurHash3::murmurhash3(const void* key, const size_t len, const uint3
 
 uint32_t MurMurHash3::operator()(const void* key, const size_t len, const uint32_t seed) const noexcept {
     return murmurhash3(key, len, seed);
+}
+
+uint32_t MurMurHash3::operator()(char* str, const uint32_t seed) const noexcept {
+    return operator()((const char*) str, seed);
 }
 
 uint32_t MurMurHash3::operator()(const char* str, const uint32_t seed) const noexcept {
