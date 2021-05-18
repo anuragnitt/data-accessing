@@ -32,7 +32,7 @@ uint64_t size_by_fp_prob(const uint64_t num_keys, double fp_prob) {
     return ceil(-(num_keys / log(2)) * (log2(fp_prob)));
 }
 
-void populate_filter(BloomFilter<string, MurMurHash3>& bloom, const string& filename) {
+void populate_filter(BloomFilter<string, MurMurHash3>& bloom, const string& filename, uint64_t limit) {
     fstream file(filename.c_str(), ios_base::in);
     if (not file.good()) {
         file.close();
@@ -40,20 +40,20 @@ void populate_filter(BloomFilter<string, MurMurHash3>& bloom, const string& file
     }
 
     string line;
-    while (getline(file, line)) {
+    while (getline(file, line) and limit--) {
         bloom.insert(line);
     }
 
     file.close();
 }
 
-void benchmark(BloomFilter<string, MurMurHash3>& bloom, const string& filename) {
+void benchmark(BloomFilter<string, MurMurHash3>& bloom, const string& filename, uint64_t limit) {
     using namespace std::chrono;
 
     std::cout << "\npopulating the filter ... ";
     std::chrono::_V2::system_clock::time_point start = high_resolution_clock::now();
 
-    populate_filter(bloom, filename);
+    populate_filter(bloom, filename, limit);
 
     std::chrono::_V2::system_clock::time_point stop = high_resolution_clock::now();
     std::cout << "done\n";
@@ -102,15 +102,20 @@ int main(void) {
 
     try {
         double fp_prob;
+        uint64_t limit;
+
+        cout << "\nupper limit on keys: ";
+        cin >> limit;
+
         cout << "custom false positive probability: ";
         cin >> fp_prob;
 
         cout << "\nreading file ...\n";
         uint64_t num_keys = count_lines(filename);
-        uint64_t size = size_by_fp_prob(num_keys, fp_prob);
+        uint64_t size = size_by_fp_prob(limit, fp_prob);
 
-        BloomFilter<string, MurMurHash3> bloom(num_keys, size);
-        benchmark(bloom, filename);
+        BloomFilter<string, MurMurHash3> bloom(limit, size);
+        benchmark(bloom, filename, limit);
         return 0;
     }
 

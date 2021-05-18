@@ -47,7 +47,7 @@ void populate_filter(CuckooFilterLL<string, MurMurHash3, RabinFingerprint>& cuck
     file.close();
 }
 
-void populate_filter(CuckooFilterHL<string, MurMurHash3, RabinFingerprint>& cuckoo, const string& filename) {
+void populate_filter(CuckooFilterHL<string, MurMurHash3, RabinFingerprint>& cuckoo, const string& filename, uint64_t limit) {
     fstream file(filename.c_str(), ios_base::in);
     if (not file.good()) {
         file.close();
@@ -55,7 +55,7 @@ void populate_filter(CuckooFilterHL<string, MurMurHash3, RabinFingerprint>& cuck
     }
 
     string line;
-    while (getline(file, line)) {
+    while (getline(file, line) and limit--) {
         try {
             cuckoo.insert(line);
         }
@@ -83,7 +83,7 @@ void benchmark(CuckooFilterLL<string, MurMurHash3, RabinFingerprint>& cuckoo, co
 
     std::cout << "\nnumber of keys\t\t\t: " << cuckoo.num_keys();
     std::cout << "\nsize of filter (bytes)\t\t: " << cuckoo.size_in_bytes();
-    std::cout << "\naverage size per key (bytes)\t: " << ((double) cuckoo.size_in_bytes()) / cuckoo.num_keys();
+    std::cout << "\naverage size per key (bytes)\t: " << ((double) (cuckoo.size_in_bytes()) / 2) / cuckoo.num_keys();
     std::cout << "\nload factor\t\t\t: " << 100 * cuckoo.load_factor() << " %";
     std::cout << "\naverage key insertion time\t: " << time << " ns\n";
 
@@ -144,13 +144,13 @@ void benchmark(CuckooFilterLL<string, MurMurHash3, RabinFingerprint>& cuckoo, co
     }
 }
 
-void benchmark(CuckooFilterHL<string, MurMurHash3, RabinFingerprint>& cuckoo, const string& filename) {
+void benchmark(CuckooFilterHL<string, MurMurHash3, RabinFingerprint>& cuckoo, const string& filename, uint64_t limit) {
     using namespace std::chrono;
 
     std::cout << "\npopulating the filter ... ";
     std::chrono::_V2::system_clock::time_point start = high_resolution_clock::now();
 
-    populate_filter(cuckoo, filename);
+    populate_filter(cuckoo, filename, limit);
 
     std::chrono::_V2::system_clock::time_point stop = high_resolution_clock::now();
     std::cout << "done\n";
@@ -158,11 +158,11 @@ void benchmark(CuckooFilterHL<string, MurMurHash3, RabinFingerprint>& cuckoo, co
     double time = duration_cast<nanoseconds>(stop - start).count();
     time /= cuckoo.num_keys();
 
-    std::cout << "\nnumber of keys: " << cuckoo.num_keys();
-    std::cout << "\nsize of filter (bytes): " << cuckoo.size_in_bytes();
-    std::cout << "\naverage size per key (bytes): " << ((double) cuckoo.size_in_bytes()) / cuckoo.num_keys();
-    std::cout << "\nload factor: " << 100 * cuckoo.load_factor() << " %";
-    std::cout << "\naverage key insertion time: " << time << " ns\n";
+    std::cout << "\nnumber of keys\t\t\t: " << cuckoo.num_keys();
+    std::cout << "\nsize of filter (bytes)\t\t: " << cuckoo.size_in_bytes();
+    std::cout << "\naverage size per key (bytes)\t: " << ((double) (cuckoo.size_in_bytes()) / 2) / cuckoo.num_keys();
+    std::cout << "\nload factor\t\t\t: " << 100 * cuckoo.load_factor() << " %";
+    std::cout << "\naverage key insertion time\t: " << time << " ns\n";
 
     std::cout << "\n1. lookup\n2. deletion\n";
 
@@ -231,21 +231,24 @@ int main(void) {
         uint64_t num_keys = count_lines(filename);
         
         double load_factor;
-        uint64_t limit;
+        uint64_t ll_limit, hl_limit;
 
         cout << "\nupper limit on keys (low load cuckoo filter): ";
-        cin >> limit;
+        cin >> ll_limit;
+
+        cout << "upper limit on keys (high load cuckoo filter): ";
+        cin >> hl_limit;
 
         cout << "custom load factor (low load cuckoo filter): ";
         cin >> load_factor;
 
-        CuckooFilterLL<string, MurMurHash3, RabinFingerprint> cuckoo_ll(limit, 500, load_factor);
-        CuckooFilterHL<string, MurMurHash3, RabinFingerprint> cuckoo_hl(num_keys, 500, 2);
+        CuckooFilterLL<string, MurMurHash3, RabinFingerprint> cuckoo_ll(ll_limit, 500, load_factor);
+        CuckooFilterHL<string, MurMurHash3, RabinFingerprint> cuckoo_hl(hl_limit, 500, 2);
 
         cout << "\n------------------ LOW LOAD CUCKOO FILTER ------------------\n";
-        benchmark(cuckoo_ll, filename, limit);
+        benchmark(cuckoo_ll, filename, ll_limit);
         cout << "\n------------------ HIGH LOAD CUCKOO FILTER ------------------\n";
-        benchmark(cuckoo_hl, filename);
+        benchmark(cuckoo_hl, filename, hl_limit);
         return 0;
     }
 
