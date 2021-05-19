@@ -427,6 +427,10 @@ _Tp BTree<_Tp>::remove(const _Tp key) {
 
 		else {
 			if (curr->leaf) {
+				if (printKey == nullptr) {
+					throw std::out_of_range("_BTREE_KEY_NOT_FOUND");
+				}
+		
 				std::stringstream newbuf;
 				std::streambuf* oldbuf = std::cout.rdbuf(newbuf.rdbuf());
 				printKey(key);
@@ -472,6 +476,10 @@ template <typename _Tp>
 _Tp BTree<_Tp>::searchKey(const _Tp key) const {
 	std::pair<const BNode<_Tp>*, uint32_t> node = search(key);
 	if (node.first == nullptr) {
+		if (printKey == nullptr) {
+			throw std::out_of_range("_BTREE_KEY_NOT_FOUND");
+		}
+
 		std::stringstream newbuf;
 		std::streambuf* oldbuf = std::cout.rdbuf(newbuf.rdbuf());
 		printKey(key);
