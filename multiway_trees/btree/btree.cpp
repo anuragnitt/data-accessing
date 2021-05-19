@@ -6,30 +6,12 @@
 #include "btree.hpp"
 using namespace std;
 
-void populate_tree(BTree<int>& tree, const string& filename) {
-	fstream file(filename.c_str(), ios_base::in);
-	if (not file.good()) {
-		file.close();
-		throw fstream::failure("failed to open file");
-	}
-
-	int num;
-	while (not file.eof()) {
-        file >> num;
-		tree.insert(num);
-	}
-
-	file.close();
-}
-
-//void benchmark(BTree<int> tree, const string& filename) {
-void benchmark(BTree<int> tree) {
+void benchmark(BTree<int>& tree) {
 	using namespace std::chrono;
 
 	std::cout << "\npopulating the tree ... ";
     std::chrono::_V2::system_clock::time_point start = high_resolution_clock::now();
 
-    //populate_tree(tree, filename);
     for (int i = -50000; i < 50000; i++) {
         tree.insert(i + 1);
     }
@@ -77,17 +59,12 @@ void print(const int& x) {
 }
 
 int main(void) {
-    /*string filename;
-    cout << "enter dictionary path: ";
-    cin >> filename;*/
-
     try {
 		size_t deg;
 		cout << "minimum degree of btree: ";
 		cin >> deg;
 
         BTree<int> tree(deg, compare, print);
-        //benchmark(tree, filename);
         benchmark(tree);
         return 0;
     }

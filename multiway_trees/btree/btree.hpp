@@ -27,15 +27,17 @@ template <typename _Tp> std::ostream& operator<<(std::ostream&, const BTree<_Tp>
 
 template <typename _Tp>
 class BNode {
-	protected:
-		void deepClean(void) noexcept;
-
-	public:
+	private:
 		BNode** child;
 		_Tp* key;
 		uint32_t size;
 		bool leaf;
 
+		friend class BTree<_Tp>;
+
+		void deepClean(void) noexcept;
+
+	public:
 		explicit BNode(const uint32_t);
 
 		~BNode(void);
@@ -324,7 +326,7 @@ void BTree<_Tp>::printNode(std::ostream& out, const BNode<_Tp>* node, const uint
 		printKey(node->key[i]);
 		out << " ";
 	}
-	std::cout << std::endl;
+	out << std::endl;
 
 	if (not node->leaf) {
 		for (uint32_t i = 0; i <= node->size; i++)
