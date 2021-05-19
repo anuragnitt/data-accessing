@@ -13,5 +13,6 @@
   * B Tree (inspired by [CalebLBaker](https://github.com/CalebLBaker/b-tree))
     * A self-balancing tree data structure where each node has multiple keys and children
 
-  * B+ Tree (inspired by [aayushmudgal](https://github.com/aayushmudgal/bplustree))
-    * Disk based implementation of B+ Tree where leaf nodes denote actual data pointers to the disk
+  * B+ Tree
+    * Memory based implementation (inspired by [shashikdm](https://github.com/shashikdm/B-Plus-Tree))
+    * Disk based implementation (inspired by [aayushmudgal](https://github.com/aayushmudgal/bplustree))
